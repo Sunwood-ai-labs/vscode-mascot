@@ -233,16 +233,13 @@ ${this.getLoaderJs()}
 
     private getLoaderJs(): string {
         const petConfig = this.getPetConfig();
-        const petEnabled = petConfig.enabled;
-        const petWalkUrl = this.escapeTemplateLiteral(petConfig.walkUrl);
-        const petIdleUrl = this.escapeTemplateLiteral(petConfig.idleUrl);
-
         return `
         (function() {
             // Pet Config
-            const petEnabled = ${petEnabled};
-            const petWalkUrl = '${petWalkUrl}';
-            const petIdleUrl = '${petIdleUrl}';
+            const petEnabled = ${petConfig.enabled};
+            const petWalkUrl = '${this.escapeTemplateLiteral(petConfig.walkUrl)}';
+            const petIdleUrl = '${this.escapeTemplateLiteral(petConfig.idleUrl)}';
+            const edgeConfig = ${JSON.stringify(petConfig.edges)};
 
             // Little Assistant Logic
             try {
@@ -258,17 +255,9 @@ ${this.getLoaderJs()}
                         const style = document.createElement('style');
                         style.id = styleId;
                         style.textContent = \`
-                            @keyframes assistant-jump {
-                                0% { transform: translateY(0) scaleX(var(--dir, 1)); }
-                                50% { transform: translateY(-15px) scaleX(var(--dir, 1)); }
-                                100% { transform: translateY(0) scaleX(var(--dir, 1)); }
-                            }
-                            .assistant-jumping {
-                                animation: assistant-jump 0.5s ease;
-                            }
                             .pet-message {
                                 position: absolute;
-                                top: 32px;
+                                bottom: 100%;
                                 left: 50%;
                                 transform: translateX(-50%);
                                 background: rgba(255, 255, 255, 0.9);
@@ -289,12 +278,12 @@ ${this.getLoaderJs()}
                             .pet-message::after {
                                 content: '';
                                 position: absolute;
-                                bottom: 100%;
+                                top: 100%;
                                 left: 50%;
                                 margin-left: -4px;
                                 border-width: 4px;
                                 border-style: solid;
-                                border-color: transparent transparent rgba(255, 255, 255, 0.9) transparent;
+                                border-color: rgba(255, 255, 255, 0.9) transparent transparent transparent;
                             }
                         \`;
                         document.head.appendChild(style);
@@ -303,16 +292,6 @@ ${this.getLoaderJs()}
                     const initAssistant = () => {
                         if (document.getElementById(assistantId)) return;
                         
-                        // Try multiple selectors for the titlebar/container
-                        const titlebar = document.getElementById('workbench.parts.titlebar') 
-                                      || document.querySelector('.titlebar')
-                                      || document.querySelector('.part.titlebar');
-                                      
-                        if (!titlebar) {
-                            console.log('[VSCode Mascot] Titlebar not found, retrying...');
-                            return;
-                        }
-
                         const assistant = document.createElement('div');
                         assistant.id = assistantId;
                         
@@ -324,19 +303,111 @@ ${this.getLoaderJs()}
                         
                         assistant.appendChild(petImage);
 
-                        assistant.style.position = 'absolute';
+                        assistant.style.position = 'fixed';
                         assistant.style.zIndex = '99999';
                         assistant.style.top = '0px'; 
-                        assistant.style.pointerEvents = 'none';
-                        assistant.style.transition = 'left 3s linear'; 
                         assistant.style.left = '0px';
-                        assistant.style.setProperty('--dir', '1');
-                        assistant.style.transform = 'scaleX(var(--dir))';
+                        assistant.style.pointerEvents = 'none';
+                        assistant.style.willChange = 'transform';
+                        // Initialize transform
+                        assistant.style.transform = 'translate(0px, 0px)';
                         
-                        // Append to titlebar to be visible there
-                        titlebar.appendChild(assistant);
+                        // State variables
+                        // Edges: 0=TOP, 1=RIGHT, 2=BOTTOM, 3=LEFT
+                        let currentEdge = 0; 
+                        let currentOffset = 0; // Pixels from start of edge (Clockwise)
+                        
+                        // Edge Validation
+                        const isValidEdge = (e) => {
+                            if (e === 0) return edgeConfig.top;
+                            if (e === 1) return edgeConfig.right;
+                            if (e === 2) return edgeConfig.bottom;
+                            if (e === 3) return edgeConfig.left;
+                            return false;
+                        };
 
-                        let currentPos = 0;
+                        // Find closest valid edge if current is invalid
+                        if (!isValidEdge(currentEdge)) {
+                            for(let i=0; i<4; i++) {
+                                if(isValidEdge(i)) {
+                                    currentEdge = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Helper to calculate coordinates based on Edge + Offset
+                        const getCoords = (edge, offset) => {
+                            const w = window.innerWidth;
+                            const h = window.innerHeight;
+                            const size = 30; // Mascot size approx
+
+                            let x = 0, y = 0, rot = 0;
+
+                            // Coordinate definitions (Classic Clockwise)
+                            // Top:    (0,0) -> (W,0)
+                            // Right:  (W,0) -> (W,H)
+                            // Bottom: (W,H) -> (0,H)
+                            // Left:   (0,H) -> (0,0)
+                            
+                            switch(edge) {
+                                case 0: // TOP
+                                    x = offset;
+                                    y = 0;
+                                    rot = 0;
+                                    break;
+                                case 1: // RIGHT
+                                    x = w - size;
+                                    y = offset;
+                                    rot = -90; // Feet point Right (Outside) -> Head points Left (Inside)
+                                    break;
+                                case 2: // BOTTOM
+                                    x = w - size - offset;
+                                    y = h - size;
+                                    rot = 0; // Upright
+                                    break;
+                                case 3: // LEFT
+                                    x = 0;
+                                    y = h - size - offset;
+                                    rot = 90; // Feet point Left (Outside) -> Head points Right (Inside)
+                                    break;
+                            }
+                            return { x, y, rot };
+                        };
+
+                        const updateVisuals = (x, y, rot, facingDir) => {
+                            // dir: 1 = walking forward (clockwise), -1 = walking backward
+                            
+                            // Adjust facing for rotation
+                            // Top (0deg): Walk Right (+dir) -> Face Right -> scaleX(1)
+                            
+                            // Right (-90deg, Native Up): 
+                            //   Walk Down (+dir) -> Want Face Down -> Native Up flipped -> scaleX(-1)
+                            
+                            // Bottom (0deg, Native Right): 
+                            //   Walk Left (+dir) -> Want Face Left -> Native Right flipped -> scaleX(-1)
+                            
+                            // Left (90deg, Native Down): 
+                            //   Walk Up (+dir) -> Want Face Up -> Native Down flipped -> scaleX(-1)
+
+                            // Simplified Formula:
+                            // Top: scale = dir
+                            // Others: scale = -dir
+                            
+                            let finalScaleX = (currentEdge === 0) ? facingDir : -facingDir;
+
+                            assistant.style.setProperty('--currX', x + 'px');
+                            assistant.style.setProperty('--currY', y + 'px');
+                            assistant.style.setProperty('--rot', rot + 'deg');
+                            assistant.style.setProperty('--dir', finalScaleX.toString());
+                            assistant.style.transform = \`translate(\${x}px, \${y}px) rotate(\${rot}deg) scaleX(\${finalScaleX})\`;
+                        };
+
+                        // Initial Place
+                        const startCoords = getCoords(currentEdge, currentOffset);
+                        updateVisuals(startCoords.x, startCoords.y, startCoords.rot, 1);
+                        document.body.appendChild(assistant);
+
                         const messages = [
                             "Hello!", "Coding...", "Need coffee?", "休憩しよう！", "バグ？", "VS Code 最高！",
                             "AI使ってる？", "TypeScript!", "Commit often!", "Don't panic"
@@ -347,7 +418,12 @@ ${this.getLoaderJs()}
                             const bubble = document.createElement('div');
                             bubble.className = 'pet-message';
                             bubble.textContent = msg;
-                            bubble.style.transform = 'translateX(-50%) scaleX(' + assistant.style.getPropertyValue('--dir') + ')';
+                            // Reset text rotation
+                            // If mascot is rotated 90, bubble needs -90
+                            const currentRot = assistant.style.getPropertyValue('--rot').replace('deg','');
+                            const currentScale = assistant.style.getPropertyValue('--dir');
+                            bubble.style.transform = \`translateX(-50%) rotate(\${-currentRot}deg) scaleX(\${currentScale})\`;
+                            
                             assistant.appendChild(bubble);
                             void bubble.offsetWidth;
                             bubble.classList.add('show');
@@ -357,49 +433,122 @@ ${this.getLoaderJs()}
                             }, 3000);
                         }
 
-                        function triggerJump() {
-                            assistant.classList.remove('assistant-jumping');
-                            void assistant.offsetWidth;
-                            assistant.classList.add('assistant-jumping');
-                        }
-
-                        function move() {
+                        // Main Logic Loop (Recursive via setTimeout)
+                        function nextMove() {
                             if (!document.body.contains(assistant)) return;
+
+                            const w = window.innerWidth;
+                            const h = window.innerHeight;
+                            const size = 30;
+                            // Calculate length of current edge
+                            const edgeLen = (currentEdge % 2 === 0) ? w : h;
+                            const maxOffset = edgeLen - size; // Stop before overflowing cornner
+
+                            // Decide Target
+                            // We can go to 0 (CCW neighbor) or maxOffset (CW neighbor) or random point
+                            const targets = [];
                             
-                            const containerWidth = titlebar.clientWidth;
-                            if (containerWidth === 0) {
-                                setTimeout(move, 1000);
-                                return;
+                            // Always allow going to corners
+                            targets.push(0);
+                            targets.push(maxOffset);
+                            // Add a random midpoint
+                            targets.push(Math.floor(Math.random() * maxOffset));
+
+                            // Pick one target different from current
+                            let target = currentOffset;
+                            for (let i=0; i<5; i++) {
+                                let t = targets[Math.floor(Math.random() * targets.length)];
+                                if (Math.abs(t - currentOffset) > 20) {
+                                    target = t;
+                                    break;
+                                }
                             }
-                            
-                            const maxPos = containerWidth - 30;
-                            const nextPos = Math.floor(Math.random() * maxPos);
-                            const dist = Math.abs(nextPos - currentPos);
-                            const speed = 50; 
-                            const duration = dist / speed; 
-                            
+                            // If stuck, force move to other end
+                            if (Math.abs(target - currentOffset) <= 20) {
+                                target = (currentOffset < maxOffset / 2) ? maxOffset : 0;
+                            }
+
+                            // Move Duration
+                            const dist = Math.abs(target - currentOffset);
+                            const speed = 50; // px per sec
+                            const duration = Math.max(0.5, dist / speed);
+
+                            // Apply Transition
                             petImage.src = petWalkUrl;
-                            assistant.style.transition = 'left ' + duration + 's linear';
+                            assistant.style.transition = 'transform ' + duration + 's linear';
                             
-                            const dir = nextPos > currentPos ? 1 : -1;
-                            assistant.style.setProperty('--dir', dir.toString());
-                            assistant.style.left = nextPos + 'px';
+                            // Visual update for Target
+                            const direction = target > currentOffset ? 1 : -1;
+                            const targetCoords = getCoords(currentEdge, target);
+                            
+                            // Update Visuals (Translate)
+                            // Note: Rotation stays same during straight walk
+                            updateVisuals(targetCoords.x, targetCoords.y, targetCoords.rot, direction);
 
-                            // Random jump
-                            if (Math.random() < 0.3) {
-                                setTimeout(() => triggerJump(), Math.random() * duration * 1000);
-                            }
-
-                            currentPos = nextPos;
-
+                            // Wait for arrival
                             setTimeout(() => {
+                                currentOffset = target;
                                 petImage.src = petIdleUrl;
-                                if (Math.random() < 0.3) showMessage();
-                                setTimeout(move, (1000 + Math.random() * 3000));
-                            }, duration * 1000);
-                        }
+                                
+                                // AT ARRIVAL: Check if we are at a corner to Switch Edge
+                                let switched = false;
+                                
+                                // Re-calc maxOffset in case window resized
+                                const currW = window.innerWidth;
+                                const currH = window.innerHeight;
+                                const currLen = (currentEdge % 2 === 0) ? currW : currH;
+                                const currMax = currLen - 30;
 
-                        move();
+                                if (currentOffset >= currMax) {
+                                    // At Clockwise End -> Try Next Edge (CW)
+                                    const nextEdge = (currentEdge + 1) % 4;
+                                    if (isValidEdge(nextEdge)) {
+                                        // Valid! Switch.
+                                        // Old End -> New Start (Offset 0)
+                                        assistant.style.transition = 'none'; // Instant switch to new coord system (should be visually same point)
+                                        currentEdge = nextEdge;
+                                        currentOffset = 0;
+                                        const newCoords = getCoords(currentEdge, currentOffset);
+                                        updateVisuals(newCoords.x, newCoords.y, newCoords.rot, 1);
+                                        switched = true;
+                                    } else {
+                                        // Dead end, just stay here and next loop will send us back
+                                    }
+                                } else if (currentOffset <= 0) {
+                                    // At Counter-Clockwise End -> Try Prev Edge (CCW)
+                                    const prevEdge = (currentEdge + 3) % 4; // -1 + 4
+                                    if (isValidEdge(prevEdge)) {
+                                        // Valid! Switch.
+                                        // Old Start -> New End (Max Offset)
+                                        assistant.style.transition = 'none';
+                                        
+                                        // Calc max of prev edge
+                                        const prevLen = (prevEdge % 2 === 0) ? currW : currH;
+                                        const prevMax = prevLen - 30;
+                                        
+                                        currentEdge = prevEdge;
+                                        currentOffset = prevMax;
+                                        
+                                        const newCoords = getCoords(currentEdge, currentOffset);
+                                        updateVisuals(newCoords.x, newCoords.y, newCoords.rot, -1); 
+                                        switched = true;
+                                    }
+                                }
+
+                                // Random message
+                                if (Math.random() < 0.3) showMessage();
+
+                                // Schedule next move
+                                // If we just switched edges, move immediately to look continuous? 
+                                // Or pause? A small pause feels natural.
+                                setTimeout(nextMove, 1000 + Math.random() * 2000);
+
+                            }, duration * 1000);
+
+                        } // End nextMove
+
+                        // Kickoff
+                        setTimeout(nextMove, 1000);
                     };
 
                     if (document.readyState === 'loading') {
@@ -408,7 +557,6 @@ ${this.getLoaderJs()}
                         initAssistant();
                     }
                     
-                    // Improved observer to watch for titlebar recreation even if it's already there
                     let observer = new MutationObserver((mutations) => {
                         if (!document.getElementById(assistantId)) {
                              initAssistant();
@@ -424,13 +572,19 @@ ${this.getLoaderJs()}
         `;
     }
 
-    private getPetConfig(): { enabled: boolean, walkUrl: string, idleUrl: string } {
+    private getPetConfig(): { enabled: boolean, walkUrl: string, idleUrl: string, edges: { top: boolean, right: boolean, bottom: boolean, left: boolean } } {
         try {
             const config = workspace.getConfiguration('vscodeMascot');
             const enabled = config.get<boolean>('enabled', false);
             const type = config.get<string>('type', 'akita');
+            const edges = {
+                top: config.get<boolean>('enableTopEdge', true),
+                right: config.get<boolean>('enableRightEdge', true),
+                bottom: config.get<boolean>('enableBottomEdge', true),
+                left: config.get<boolean>('enableLeftEdge', true)
+            };
 
-            console.log(`[VSCode Mascot] Config - Enabled: ${enabled}, Type: ${type}`);
+            console.log(`[VSCode Mascot] Config - Enabled: ${enabled}, Type: ${type}, Edges: ${JSON.stringify(edges)}`);
 
             const mapping: any = {
                 'akita': { folder: 'dog', idle: 'akita_idle_8fps.gif', walk: 'akita_walk_8fps.gif' },
@@ -468,15 +622,15 @@ ${this.getLoaderJs()}
                 idleUrl = Uri.file(idlePath).with({ scheme: 'vscode-file', authority: 'vscode-app' }).toString();
             }
 
-            return { enabled, walkUrl, idleUrl };
+            return { enabled, walkUrl, idleUrl, edges };
         } catch (e) {
             console.error('[VSCode Mascot] getPetConfig Error:', e);
-            return { enabled: false, walkUrl: '', idleUrl: '' };
+            return { enabled: false, walkUrl: '', idleUrl: '', edges: { top: true, right: true, bottom: true, left: true } };
         }
     }
 
     private escapeTemplateLiteral(value: string): string {
         if (!value) return value;
-        return value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+        return value.replace(/\\\\/g, '\\\\\\\\').replace(/`/g, '\\\\`').replace(/\\\\\$\{/g, '\\\\\\${');
     }
 }

@@ -2,3 +2,6 @@ out
 node_modules
 .vscode-test/
 *.vsix
+release_notes_v1_1_1_jp.md
+release_notes.md
+release_notes_v1_1_1.md

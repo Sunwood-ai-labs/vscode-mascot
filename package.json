@@ -2,7 +2,7 @@
     "name": "vscode-mascot",
     "displayName": "VSCode Mascot",
     "description": "Add a cute mascot to your VSCode!",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "publisher": "Maki-SunwoodAILabs",
     "engines": {
         "vscode": "^1.38.0"
@@ -86,6 +86,26 @@
                         "Morph / モーフ"
                     ],
                     "description": "Select the mascot character. / マスコットキャラクターを選択します。"
+                },
+                "vscodeMascot.enableTopEdge": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable mascot movement on the top edge. / 上端の移動を有効にします。"
+                },
+                "vscodeMascot.enableRightEdge": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable mascot movement on the right edge. / 右端の移動を有効にします。"
+                },
+                "vscodeMascot.enableBottomEdge": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable mascot movement on the bottom edge. / 下端の移動を有効にします。"
+                },
+                "vscodeMascot.enableLeftEdge": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable mascot movement on the left edge. / 左端の移動を有効にします。"
                 }
             }
         }
