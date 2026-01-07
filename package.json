@@ -2,7 +2,7 @@
     "name": "vscode-mascot",
     "displayName": "VSCode Mascot",
     "description": "Add a cute mascot to your VSCode!",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "Maki-SunwoodAILabs",
     "engines": {
         "vscode": "^1.38.0"
@@ -43,7 +43,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/vscode-mascot/vscode-mascot"
+        "url": "https://github.com/Sunwood-ai-labs/vscode-mascot"
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
