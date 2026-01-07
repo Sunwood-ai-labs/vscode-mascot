@@ -1,0 +1,7 @@
+A retro pixel art style header image for a software project.
+Text "vscode-mascot" displayed in the center in a pixel font.
+Style: 16-bit pixel art, vibrant colors, cute and gaming aesthetic.
+Elements: tiny pixel hearts, stars, and maybe a small pixel dog in the corner.
+Composition: 16:9 aspect ratio, important elements centered.
+NO Kanji, Hiragana, Katakana - English text only.
+Professional yet playful, 16:9 composition squeezed into square.

@@ -3,7 +3,7 @@
     "displayName": "VSCode Mascot",
     "description": "Add a cute mascot to your VSCode!",
     "version": "1.0.0",
-    "publisher": "vscode-mascot",
+    "publisher": "Maki-SunwoodAILabs",
     "engines": {
         "vscode": "^1.38.0"
     },

@@ -1,6 +1,20 @@
+<div align="center">
+<img src="assets/header.png" alt="Header" width="100%" />
+</div>
+
+<div align="center">
+
 # VSCode Mascot
 
-![Mascot](resources/pet/dog/akita_idle_8fps.gif)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue)]()
+[![License](https://img.shields.io/badge/license-ISC-green)]()
+[![Typescript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)]()
+
+</div>
+
+<div align="center">
+<img src="resources/pet/dog/akita_idle_8fps.gif" alt="Mascot" />
+</div>
 
 A cute mascot living in your VS Code title bar!
 
@@ -40,3 +54,8 @@ To completely remove the mascot:
 ## Credits
 
 This extension is a stripped-down version of [vscode-background-cover](https://github.com/AShujiao/vscode-background-cover), focusing solely on the "Little Pet" functionality.
+
+> [!NOTE]
+> このリポジトリはGA-Workspaceで作成されました
+> 🌸 Powered by ZERO_GRAVITY
+> https://github.com/Sunwood-ai-labs/ZERO_GRAVITY
