@@ -33,41 +33,52 @@ const WORKBENCH_TARGETS: WorkbenchTarget[] = [
     }
 ];
 
-function getWorkbenchTarget(): WorkbenchTarget {
-    const pickByName = (name: string): WorkbenchTarget | undefined => {
-        return WORKBENCH_TARGETS.find((target) => target.name === name && fs.existsSync(path.join(target.root, target.js)));
-    };
-    // Simplified detection logic
-    if (env.remoteName === 'ssh-remote' || (env.appName || '').toLowerCase().includes('server')) {
-        const serverTarget = pickByName('code-server');
-        if (serverTarget) return serverTarget;
-    }
-    return pickByName('desktop') || pickByName('code-server') || WORKBENCH_TARGETS[0];
-}
-
-const selectedWorkbench = getWorkbenchTarget();
-const JS_FILE_PATH = path.join(selectedWorkbench.root, selectedWorkbench.js);
-const BAK_FILE_PATH = path.join(selectedWorkbench.root, selectedWorkbench.bak);
-
 enum SystemType {
     WINDOWS = 'Windows_NT',
     MACOS = 'Darwin',
     LINUX = 'Linux'
 }
 
+// workbench target detection removed from top level to prevent activation issues
 export class FileDom {
-    private readonly filePath: string;
-    private readonly extName = "vscodeMascot"; // changed from backgroundCover
+    private readonly extName = "vscodeMascot";
     private readonly systemType: string;
     private bakStatus: boolean = false;
     private bakJsContent: string = '';
+    private workbenchTarget: WorkbenchTarget | undefined;
 
     constructor() {
-        this.filePath = JS_FILE_PATH;
         this.systemType = os.type();
     }
 
+    private getWorkbenchTarget(): WorkbenchTarget {
+        if (this.workbenchTarget) return this.workbenchTarget;
+
+        const pickByName = (name: string): WorkbenchTarget | undefined => {
+            return WORKBENCH_TARGETS.find((target) => target.name === name && fs.existsSync(path.join(target.root, target.js)));
+        };
+
+        if (env.remoteName === 'ssh-remote' || (env.appName || '').toLowerCase().includes('server')) {
+            const serverTarget = pickByName('code-server');
+            if (serverTarget) return serverTarget;
+        }
+
+        this.workbenchTarget = pickByName('desktop') || pickByName('code-server') || WORKBENCH_TARGETS[0];
+        return this.workbenchTarget;
+    }
+
+    private get JS_FILE_PATH() {
+        const target = this.getWorkbenchTarget();
+        return path.join(target.root, target.js);
+    }
+
+    private get BAK_FILE_PATH() {
+        const target = this.getWorkbenchTarget();
+        return path.join(target.root, target.bak);
+    }
+
     public async install(): Promise<boolean> {
+        console.log('[VSCode Mascot] Starting install process...');
         if (!(await this.checkFileExists())) {
             return false;
         }
@@ -76,18 +87,20 @@ export class FileDom {
     }
 
     private async checkFileExists(): Promise<boolean> {
-        const isExist = await fse.pathExists(this.filePath);
+        const isExist = await fse.pathExists(this.JS_FILE_PATH);
         if (!isExist) {
-            await window.showErrorMessage(`Core file not found: ${this.filePath}`);
+            console.error(`[VSCode Mascot] Core file not found: ${this.JS_FILE_PATH}`);
+            await window.showErrorMessage(`Core file not found: ${this.JS_FILE_PATH}`);
             return false;
         }
         return true;
     }
 
     private async ensureBackup(): Promise<void> {
-        const bakExist = await fse.pathExists(BAK_FILE_PATH);
+        const bakExist = await fse.pathExists(this.BAK_FILE_PATH);
         if (!bakExist) {
             this.bakStatus = true;
+            console.log('[VSCode Mascot] Creating backup...');
             window.setStatusBarMessage(`First time setup: Backing up workbench file...`, 10000);
         }
     }
@@ -102,16 +115,20 @@ export class FileDom {
             }
             release = await lockfile.lock(lockPath, { retries: 5, stale: 20000 });
 
+            console.log('[VSCode Mascot] Applying patch...');
             const content = this.getJs().trim();
-            const currentContent = await this.getContent(this.filePath);
+            const currentContent = await this.getContent(this.JS_FILE_PATH);
 
             // Check if we need to update
             const match = currentContent.match(new RegExp(`\\/\\*ext-${this.extName}-start\\*\\/([\\s\\S]*?)\\/\\*ext-${this.extName}-end\\*\\/`));
             if (match && match[0].trim() === content.trim()) {
-                console.log('Patch already applied and up to date.');
+                console.log('[VSCode Mascot] Patch already applied and up to date.');
+                // Even if up to date, we return true to indicate success.
+                // But we could return a different value if we wanted to skip the restart prompt.
                 return true;
             }
 
+            console.log('[VSCode Mascot] Patch needs update or initial application.');
             // Remove old mascot patch if exists (or old background-cover patch)
             let cleanContent = this.clearContent(currentContent, 'backgroundCover'); // Clean legacy
             cleanContent = this.clearContent(cleanContent, this.extName); // Clean current
@@ -121,10 +138,13 @@ export class FileDom {
                 await this.bakFile();
             }
 
-            const newContent = cleanContent + content;
-            return await this.saveContent(newContent);
+            const newContent = cleanContent + "\n" + content; // Ensure newline before patch
+            await this.saveContent(newContent);
+            console.log('[VSCode Mascot] Patch applied successfully.');
+            return true;
 
         } catch (error: any) {
+            console.error('[VSCode Mascot] Installation failed:', error);
             await window.showErrorMessage(`Installation failed: ${error.message}`);
             return false;
         } finally {
@@ -134,7 +154,7 @@ export class FileDom {
 
     public async uninstall(): Promise<boolean> {
         try {
-            const content = this.clearContent(await this.getContent(this.filePath), this.extName);
+            const content = this.clearContent(await this.getContent(this.JS_FILE_PATH), this.extName);
             await this.saveContent(content);
             return true;
         } catch (error) {
@@ -148,7 +168,7 @@ export class FileDom {
     }
 
     private async saveContent(content: string): Promise<boolean> {
-        await this.writeWithPermission(this.filePath, content);
+        await this.writeWithPermission(this.JS_FILE_PATH, content);
         return true;
     }
 
@@ -156,6 +176,7 @@ export class FileDom {
         try {
             await fse.writeFile(filePath, content, { encoding: 'utf-8' });
         } catch (err) {
+            console.log('[VSCode Mascot] Permission denied, trying sudo...');
             await this.getFilePermission(filePath);
             await fse.writeFile(filePath, content, { encoding: 'utf-8' });
         }
@@ -182,27 +203,27 @@ export class FileDom {
 
     private async bakFile(): Promise<void> {
         try {
-            await fse.writeFile(BAK_FILE_PATH, this.bakJsContent, { encoding: 'utf-8' });
+            await fse.writeFile(this.BAK_FILE_PATH, this.bakJsContent, { encoding: 'utf-8' });
         } catch (err) {
             // Permission handling for backup creation if needed
             if (this.systemType === SystemType.WINDOWS) {
-                await SudoPromptHelper.exec(`echo. > "${BAK_FILE_PATH}"`);
-                await SudoPromptHelper.exec(`icacls "${BAK_FILE_PATH}" /grant Users:F`);
+                await SudoPromptHelper.exec(`echo. > "${this.BAK_FILE_PATH}"`);
+                await SudoPromptHelper.exec(`icacls "${this.BAK_FILE_PATH}" /grant Users:F`);
             } else {
-                await SudoPromptHelper.exec(`touch "${BAK_FILE_PATH}"`);
-                await SudoPromptHelper.exec(`chmod 666 "${BAK_FILE_PATH}"`);
+                await SudoPromptHelper.exec(`touch "${this.BAK_FILE_PATH}"`);
+                await SudoPromptHelper.exec(`chmod 666 "${this.BAK_FILE_PATH}"`);
             }
-            await fse.writeFile(BAK_FILE_PATH, this.bakJsContent, { encoding: 'utf-8' });
+            await fse.writeFile(this.BAK_FILE_PATH, this.bakJsContent, { encoding: 'utf-8' });
         }
     }
 
     private getJs(): string {
         return `
-        /*ext-${this.extName}-start*/
-        /*ext.${this.extName}.ver.${version}*/
-        ${this.getLoaderJs()}
-        /*ext-${this.extName}-end*/
-        `;
+/*ext-${this.extName}-start*/
+/*ext.${this.extName}.ver.${version}*/
+${this.getLoaderJs()}
+/*ext-${this.extName}-end*/
+`;
     }
 
     private clearContent(content: string, extName: string): string {
@@ -230,7 +251,6 @@ export class FileDom {
                     if (assistant) assistant.remove();
                 } else {
                     const assistantId = 'vscode-mascot-assistant';
-                    const titlebarId = 'workbench.parts.titlebar';
                     
                     // Inject CSS for animations
                     const styleId = 'vscode-mascot-assistant-style';
@@ -243,25 +263,8 @@ export class FileDom {
                                 50% { transform: translateY(-15px) scaleX(var(--dir, 1)); }
                                 100% { transform: translateY(0) scaleX(var(--dir, 1)); }
                             }
-                            @keyframes title-shake {
-                                0% { transform: translate(1px, 1px) rotate(0deg); }
-                                10% { transform: translate(-1px, -2px) rotate(-1deg); }
-                                20% { transform: translate(-3px, 0px) rotate(1deg); }
-                                30% { transform: translate(3px, 2px) rotate(0deg); }
-                                40% { transform: translate(1px, -1px) rotate(1deg); }
-                                50% { transform: translate(-1px, 2px) rotate(-1deg); }
-                                60% { transform: translate(-3px, 1px) rotate(0deg); }
-                                70% { transform: translate(3px, 1px) rotate(-1deg); }
-                                80% { transform: translate(-1px, -1px) rotate(1deg); }
-                                90% { transform: translate(1px, 2px) rotate(0deg); }
-                                100% { transform: translate(1px, -2px) rotate(-1deg); }
-                            }
                             .assistant-jumping {
                                 animation: assistant-jump 0.5s ease;
-                            }
-                            .title-shaking {
-                                animation: title-shake 0.5s;
-                                display: inline-block;
                             }
                             .pet-message {
                                 position: absolute;
@@ -299,8 +302,16 @@ export class FileDom {
 
                     const initAssistant = () => {
                         if (document.getElementById(assistantId)) return;
-                        const titlebar = document.getElementById(titlebarId) || document.querySelector('.titlebar');
-                        if (!titlebar) return;
+                        
+                        // Try multiple selectors for the titlebar/container
+                        const titlebar = document.getElementById('workbench.parts.titlebar') 
+                                      || document.querySelector('.titlebar')
+                                      || document.querySelector('.part.titlebar');
+                                      
+                        if (!titlebar) {
+                            console.log('[VSCode Mascot] Titlebar not found, retrying...');
+                            return;
+                        }
 
                         const assistant = document.createElement('div');
                         assistant.id = assistantId;
@@ -356,6 +367,11 @@ export class FileDom {
                             if (!document.body.contains(assistant)) return;
                             
                             const containerWidth = titlebar.clientWidth;
+                            if (containerWidth === 0) {
+                                setTimeout(move, 1000);
+                                return;
+                            }
+                            
                             const maxPos = containerWidth - 30;
                             const nextPos = Math.floor(Math.random() * maxPos);
                             const dist = Math.abs(nextPos - currentPos);
@@ -392,10 +408,13 @@ export class FileDom {
                         initAssistant();
                     }
                     
-                    // Watch for titlebar recreation (e.g. settings change)
-                    new MutationObserver(() => {
-                        if (!document.getElementById(assistantId)) initAssistant();
-                    }).observe(document.body, { childList: true, subtree: true });
+                    // Improved observer to watch for titlebar recreation even if it's already there
+                    let observer = new MutationObserver((mutations) => {
+                        if (!document.getElementById(assistantId)) {
+                             initAssistant();
+                        }
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
                 }
 
             } catch (e) {
@@ -410,6 +429,8 @@ export class FileDom {
             const config = workspace.getConfiguration('vscodeMascot');
             const enabled = config.get<boolean>('enabled', false);
             const type = config.get<string>('type', 'akita');
+
+            console.log(`[VSCode Mascot] Config - Enabled: ${enabled}, Type: ${type}`);
 
             const mapping: any = {
                 'akita': { folder: 'dog', idle: 'akita_idle_8fps.gif', walk: 'akita_walk_8fps.gif' },
@@ -434,6 +455,7 @@ export class FileDom {
             const mascotMapping = mapping[type] || mapping['akita'];
             const context = getContext();
             const extensionRoot = context ? context.extensionPath : '';
+            console.log(`[VSCode Mascot] Extension Root: ${extensionRoot}`);
 
             let walkUrl = '';
             let idleUrl = '';
@@ -448,6 +470,7 @@ export class FileDom {
 
             return { enabled, walkUrl, idleUrl };
         } catch (e) {
+            console.error('[VSCode Mascot] getPetConfig Error:', e);
             return { enabled: false, walkUrl: '', idleUrl: '' };
         }
     }

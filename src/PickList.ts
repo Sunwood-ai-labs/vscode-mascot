@@ -42,6 +42,7 @@ export class PickList {
             { label: 'Panda', value: 'panda', desc: 'パンダ' },
             { label: 'Snail', value: 'snail', desc: 'カタツムリ' },
             { label: 'Deno', value: 'deno', desc: '恐竜' },
+            { label: 'Deno2', value: 'deno2', desc: '恐竜2' },
             { label: 'Morph', value: 'morph', desc: 'モーフ' },
         ];
 
@@ -56,11 +57,12 @@ export class PickList {
     private showPetSelection() {
         this.quickPick = window.createQuickPick<ImgItem>();
         this.quickPick.items = this.getPetSelectionItems();
-        this.quickPick.onDidAccept(() => {
+        this.quickPick.onDidAccept(async () => {
             if (this.quickPick && this.quickPick.selectedItems.length > 0) {
                 const selected = this.quickPick.selectedItems[0];
                 if (selected.path) {
-                    workspace.getConfiguration('vscodeMascot').update('type', selected.path, true);
+                    console.log(`[VSCode Mascot] Selected pet: ${selected.path}`);
+                    await workspace.getConfiguration('vscodeMascot').update('type', selected.path, true);
                     this.quickPick.hide();
                 }
             }
