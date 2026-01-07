@@ -6,11 +6,13 @@
 - **機能**: マスコットが移動できる端（上、左、右、下）を個別に設定できる機能を追加。
 - **改善**: マスコットの移動ロジックを刷新し、ワープや逆さまになる問題を修正。
 - **改善**: 左右の端を歩く際、壁をよじ登るような向きになるよう修正。
+- **最適化**: 起動パフォーマンス向上のため、拡張機能の読み込みタイミングを調整。
 
 ### 英語 / English
 - **Feature**: Added individual settings to enable/disable movement on specific edges (Top, Left, Right, Bottom).
 - **Improvement**: Refactored movement logic to prevent teleporting and fixed orientation issues.
 - **Improvement**: Adjusted mascot rotation on left/right edges to appear as climbing the wall.
+- **Optimization**: Changed activation event to `onStartupFinished` for better startup performance.
 
 ---
 

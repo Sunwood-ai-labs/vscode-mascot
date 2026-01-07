@@ -17,7 +17,7 @@
         "Theme"
     ],
     "activationEvents": [
-        "*"
+        "onStartupFinished"
     ],
     "license": "ISC",
     "main": "./out/extension",
