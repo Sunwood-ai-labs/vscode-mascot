@@ -1,12 +1,9 @@
 import {
     QuickPick,
     window,
-    commands,
     workspace
 } from 'vscode';
 import { ImgItem } from './ImgItem';
-import { getContext } from './global';
-import { FileDom } from './FileDom';
 
 export enum ActionType {
     SelectPet = 1,
