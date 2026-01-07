@@ -1,0 +1,72 @@
+{
+    "name": "vscode-mascot",
+    "displayName": "VSCode Mascot",
+    "description": "Add a cute mascot to your VSCode!",
+    "version": "1.0.0",
+    "publisher": "vscode-mascot",
+    "engines": {
+        "vscode": "^1.38.0"
+    },
+    "icon": "resources/icon.gif",
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "Mascot",
+        "Pet",
+        "Theme"
+    ],
+    "activationEvents": [
+        "*"
+    ],
+    "license": "ISC",
+    "main": "./out/extension",
+    "extensionKind": [
+        "ui",
+        "workspace"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.vscodeMascot.togglePet",
+                "title": "Mascot: Toggle Pet"
+            },
+            {
+                "command": "extension.vscodeMascot.switchPet",
+                "title": "Mascot: Switch Pet"
+            }
+        ],
+        "configuration": {
+            "title": "VSCode Mascot",
+            "properties": {}
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vscode-mascot/vscode-mascot"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "vscode:uninstall": "node ./out/uninstall",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test",
+        "check": "tslint -p ./"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^11.0.4",
+        "@types/lockfile": "^1.0.4",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^22.9.0",
+        "@types/proper-lockfile": "^4.1.4",
+        "@types/vscode": "^1.30.0",
+        "@vscode/test-electron": "^2.3.2",
+        "typescript": "^4.5.4"
+    },
+    "dependencies": {
+        "async-mutex": "^0.5.0",
+        "fs-extra": "^11.2.0",
+        "proper-lockfile": "^4.1.2",
+        "sudo-prompt": "^9.2.1"
+    }
+}
