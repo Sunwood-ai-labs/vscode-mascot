@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { env, Uri, window } from 'vscode';
+import { env, Uri, window, workspace } from 'vscode';
 import * as lockfile from 'proper-lockfile';
 import version from './version';
 import { SudoPromptHelper } from './SudoPromptHelper';
@@ -407,14 +407,9 @@ export class FileDom {
 
     private getPetConfig(): { enabled: boolean, walkUrl: string, idleUrl: string } {
         try {
-            const context = getContext();
-            let enabled = false;
-            let type = 'akita';
-
-            if (context) {
-                enabled = context.globalState.get<boolean>('backgroundCoverPetEnabled', false);
-                type = context.globalState.get<string>('backgroundCoverPetType', 'akita');
-            }
+            const config = workspace.getConfiguration('vscodeMascot');
+            const enabled = config.get<boolean>('enabled', false);
+            const type = config.get<string>('type', 'akita');
 
             const mapping: any = {
                 'akita': { folder: 'dog', idle: 'akita_idle_8fps.gif', walk: 'akita_walk_8fps.gif' },
@@ -436,15 +431,16 @@ export class FileDom {
                 'pika': { folder: 'pika', idle: 'pika_still.gif', walk: 'pika_run.gif' },
             };
 
-            const config = mapping[type] || mapping['akita'];
+            const mascotMapping = mapping[type] || mapping['akita'];
+            const context = getContext();
             const extensionRoot = context ? context.extensionPath : '';
 
             let walkUrl = '';
             let idleUrl = '';
 
             if (extensionRoot) {
-                const walkPath = path.join(extensionRoot, 'resources', 'pet', config.folder, config.walk);
-                const idlePath = path.join(extensionRoot, 'resources', 'pet', config.folder, config.idle);
+                const walkPath = path.join(extensionRoot, 'resources', 'pet', mascotMapping.folder, mascotMapping.walk);
+                const idlePath = path.join(extensionRoot, 'resources', 'pet', mascotMapping.folder, mascotMapping.idle);
 
                 walkUrl = Uri.file(walkPath).with({ scheme: 'vscode-file', authority: 'vscode-app' }).toString();
                 idleUrl = Uri.file(idlePath).with({ scheme: 'vscode-file', authority: 'vscode-app' }).toString();

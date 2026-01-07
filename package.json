@@ -38,7 +38,56 @@
         ],
         "configuration": {
             "title": "VSCode Mascot",
-            "properties": {}
+            "properties": {
+                "vscodeMascot.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable or disable the VSCode Mascot. / マスコットを有効または無効にします。"
+                },
+                "vscodeMascot.type": {
+                    "type": "string",
+                    "default": "akita",
+                    "enum": [
+                        "akita",
+                        "totoro",
+                        "fox",
+                        "pika",
+                        "deno2",
+                        "clippy",
+                        "rubber-duck",
+                        "crab",
+                        "zappy",
+                        "cockatiel",
+                        "snake",
+                        "chicken",
+                        "turtle",
+                        "panda",
+                        "snail",
+                        "deno",
+                        "morph"
+                    ],
+                    "enumDescriptions": [
+                        "Akita (Dog) / 秋田犬",
+                        "Totoro / トトロ",
+                        "Fox / キツネ",
+                        "Pika / ピカチュウ",
+                        "Deno2 / 恐竜2",
+                        "Clippy / クリッピー",
+                        "Rubber Duck / アヒル隊長",
+                        "Crab / カニ",
+                        "Zappy / ザッピー",
+                        "Cockatiel / オカメインコ",
+                        "Snake / ヘビ",
+                        "Chicken / ニワトリ",
+                        "Turtle / カメ",
+                        "Panda / パンダ",
+                        "Snail / カタツムリ",
+                        "Deno / 恐竜",
+                        "Morph / モーフ"
+                    ],
+                    "description": "Select the mascot character. / マスコットキャラクターを選択します。"
+                }
+            }
         }
     },
     "repository": {

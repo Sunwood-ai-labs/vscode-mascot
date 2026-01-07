@@ -1,10 +1,12 @@
-'use strict';
 import {
 	commands,
-	ExtensionContext
+	ExtensionContext,
+	workspace,
+	window
 } from 'vscode';
 import { PickList, ActionType } from './PickList';
 import { setContext } from './global';
+import { FileDom } from './FileDom';
 
 export function activate(context: ExtensionContext) {
 	setContext(context);
@@ -19,8 +21,29 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(togglePetField);
 	context.subscriptions.push(switchPetField);
 
-	// Check if we need to show welcome message or update
-	// (Simplified for now, can add back version check logic if needed)
+	// Listen for configuration changes with a simple lock to prevent concurrent installs
+	let isInstalling = false;
+	context.subscriptions.push(workspace.onDidChangeConfiguration(async e => {
+		if (e.affectsConfiguration('vscodeMascot')) {
+			if (isInstalling) return;
+			isInstalling = true;
+
+			try {
+				const fileDom = new FileDom();
+				const success = await fileDom.install();
+				if (success) {
+					const action = await window.showInformationMessage('Mascot configuration updated. Restart VS Code to apply changes?', 'Restart', 'Later');
+					if (action === 'Restart') {
+						commands.executeCommand('workbench.action.reloadWindow');
+					}
+				}
+			} catch (err: any) {
+				window.showErrorMessage(`Failed to update mascot: ${err.message || err}`);
+			} finally {
+				isInstalling = false;
+			}
+		}
+	}));
 }
 
 export function deactivate() {

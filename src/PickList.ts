@@ -1,7 +1,8 @@
 import {
     QuickPick,
     window,
-    commands
+    commands,
+    workspace
 } from 'vscode';
 import { ImgItem } from './ImgItem';
 import { getContext } from './global';
@@ -25,7 +26,8 @@ export class PickList {
     }
 
     private getPetSelectionItems(): ImgItem[] {
-        const currentPet = getContext().globalState.get('backgroundCoverPetType', 'akita');
+        const config = workspace.getConfiguration('vscodeMascot');
+        const currentPet = config.get<string>('type', 'akita');
         const pets = [
             { label: 'Akita (Dog)', value: 'akita', desc: '秋田犬' },
             { label: 'Totoro', value: 'totoro', desc: 'トトロ' },
@@ -61,9 +63,7 @@ export class PickList {
             if (this.quickPick && this.quickPick.selectedItems.length > 0) {
                 const selected = this.quickPick.selectedItems[0];
                 if (selected.path) {
-                    getContext().globalState.update('backgroundCoverPetType', selected.path).then(() => {
-                        this.updateDom();
-                    });
+                    workspace.getConfiguration('vscodeMascot').update('type', selected.path, true);
                     this.quickPick.hide();
                 }
             }
@@ -75,40 +75,15 @@ export class PickList {
     }
 
     private togglePet() {
-        const context = getContext();
-        const currentValue = context.globalState.get('backgroundCoverPetEnabled', false);
-        context.globalState.update('backgroundCoverPetEnabled', !currentValue).then(() => {
+        const config = workspace.getConfiguration('vscodeMascot');
+        const currentValue = config.get<boolean>('enabled', false);
+        config.update('enabled', !currentValue, true).then(() => {
             if (!currentValue) {
                 window.showInformationMessage('Mascot Enabled! / マスコットを有効にしました！');
             } else {
                 window.showInformationMessage('Mascot Disabled! / マスコットを無効にしました！');
             }
-            this.updateDom();
         });
-    }
-
-    private async updateDom() {
-        // Initialize FileDom to apply changes
-        // We pass dummy config because we removed most config deps, but FileDom constructor signature might still need check
-        // We will refactor FileDom next, so let's assume a simpler constructor or just no args if possible?
-        // Original FileDom took (config, imagePath, opacity, ...)
-        // We will simplify FileDom to take nothing or just context implicitly.
-
-        try {
-            const fileDom = new FileDom();
-            await fileDom.install();
-
-            // Reload prompt since modifying core files often needs reload, 
-            // BUT the original extension tried to do hot reload for CSS. 
-            // JS changes usually require reload. The mascot is injected via JS.
-            // So we probably need a reload window.
-            const action = await window.showInformationMessage('Configuration changed. Restart VS Code to apply?', 'Restart', 'Later');
-            if (action === 'Restart') {
-                commands.executeCommand('workbench.action.reloadWindow');
-            }
-        } catch (e) {
-            window.showErrorMessage('Failed to update: ' + e);
-        }
     }
 
     private dispose() {
