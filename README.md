@@ -1,5 +1,5 @@
 <div align="center">
-<img src="assets/header.png" alt="Header" width="100%" />
+<img src="https://raw.githubusercontent.com/Sunwood-ai-labs/vscode-mascot/master/assets/header.png" alt="Header" width="100%" />
 </div>
 
 <div align="center">
@@ -13,7 +13,7 @@
 </div>
 
 <div align="center">
-<img src="resources/pet/dog/akita_idle_8fps.gif" alt="Mascot" />
+<img src="https://raw.githubusercontent.com/Sunwood-ai-labs/vscode-mascot/master/resources/pet/dog/akita_idle_8fps.gif" alt="Mascot" />
 </div>
 
 A cute mascot living in your VS Code title bar!
