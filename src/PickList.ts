@@ -44,6 +44,8 @@ export class PickList {
             { label: 'Deno', value: 'deno', desc: '恐竜' },
             { label: 'Deno2', value: 'deno2', desc: '恐竜2' },
             { label: 'Morph', value: 'morph', desc: 'モーフ' },
+            { label: 'Fox Mini 1', value: 'fox_mini1', desc: 'キツネ(ミニ1)' },
+            { label: 'Togemaru', value: 'togemaru', desc: 'とげまる' },
         ];
 
         return pets.map(p => ({
