@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.1 (2026-01-08)
+
+### 日本語 / Japanese
+- **機能**: 吹き出しの文字の大きさを変更できる設定を追加。
+- **機能**: 吹き出しの表示をON/OFFできる設定を追加。
+- **修正**: 吹き出しの文字が反転（鏡文字）して表示される問題を修正。
+- **改善**: マスコットの向き反転を瞬時に行うように変更し、アスペクト比の崩れを修正。
+- **機能**: 新しいマスコット「キツネ(ミニ1)」を追加。
+
+### 英語 / English
+- **Feature**: Added setting to adjust speech bubble font size.
+- **Feature**: Added setting to toggle speech bubble display.
+- **Fix**: Fixed issue where speech bubble text would appear mirrored/reversed.
+- **Improvement**: Made mascot direction flipping instantaneous to fix aspect ratio distortion.
+- **Feature**: Added new mascot 'Fox Mini 1'.
+
+---
+
 ## 1.2.0 (2026-01-08)
 
 ### 日本語 / Japanese
