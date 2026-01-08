@@ -2,7 +2,7 @@
     "name": "vscode-mascot",
     "displayName": "VSCode Mascot",
     "description": "Add a cute mascot to your VSCode!",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "publisher": "Maki-SunwoodAILabs",
     "engines": {
         "vscode": "^1.38.0"
@@ -64,7 +64,10 @@
                         "panda",
                         "snail",
                         "deno",
-                        "morph"
+                        "morph",
+                        "fox_mini1",
+                        "togemaru",
+                        "senshi-a"
                     ],
                     "enumDescriptions": [
                         "Akita (Dog) / 秋田犬",
@@ -83,7 +86,10 @@
                         "Panda / パンダ",
                         "Snail / カタツムリ",
                         "Deno / 恐竜",
-                        "Morph / モーフ"
+                        "Morph / モーフ",
+                        "Fox Mini 1 / キツネ(ミニ1)",
+                        "Togemaru / とげまる",
+                        "Senshi-A (Demo) / 戦士A(デモ)"
                     ],
                     "description": "Select the mascot character. / マスコットキャラクターを選択します。"
                 },
@@ -106,6 +112,16 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Enable mascot movement on the left edge. / 左端の移動を有効にします。"
+                },
+                "vscodeMascot.speech.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable or disable the speech bubble. / 吹き出しの表示を有効または無効にします。"
+                },
+                "vscodeMascot.speech.fontSize": {
+                    "type": "string",
+                    "default": "12px",
+                    "description": "Font size for the speech bubble (e.g., 12px, 1rem). / 吹き出しの文字の大きさを指定します（例：12px, 1rem）。"
                 }
             }
         }
