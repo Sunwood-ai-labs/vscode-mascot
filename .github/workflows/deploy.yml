@@ -16,3 +16,4 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }} --no-dependencies
+      - run: npx ovsx publish -p ${{ secrets.OPEN_VSX_TOKEN }}
